@@ -16,6 +16,8 @@ const INGREDIENT_PRICES = {
     bacon: 0.7
 };
 
+const BASE_PRICE = 4;
+
 class BurgerBuilder extends Component {
     // constructor(props) {
     //     super(props);
@@ -30,15 +32,13 @@ class BurgerBuilder extends Component {
         error: false
     }
 
-    componentDidMount() {
-        console.log(this.props);
-        axios.get('/ingredients.json')
-            .then(response => {
-                this.setState({ ingredients: response.data });
-            })
-            .catch(error => {
-                this.setState({ error: true });
-            });
+    async componentDidMount() {
+        try {
+            const { data } = await axios.get('/ingredients.json');
+            this.setState({ ingredients: data })
+        } catch (e) {
+            this.setState({ error: true });
+        }
     }
 
     updatePurchaseState(ingredients) {
@@ -52,6 +52,20 @@ class BurgerBuilder extends Component {
         this.setState({ purchasable: sum > 0 });
     }
 
+    calculateTotalPrice = () => Object.keys(this.state.ingredients)
+        .reduce((sum, el) => sum + this.state.ingredients[el] * INGREDIENT_PRICES[el], BASE_PRICE)
+
+
+    resetIngredientHandler = () => {
+        const updatedIngredients = {
+            ...this.state.ingredients
+        };
+        for (let key in updatedIngredients) {
+            updatedIngredients[key] = 0
+        }
+        this.setState({ ingredients: updatedIngredients })
+    }
+
     addIngredientHandler = (type) => {
         const oldCount = this.state.ingredients[type];
         const updatedCount = oldCount + 1;
@@ -59,10 +73,7 @@ class BurgerBuilder extends Component {
             ...this.state.ingredients
         };
         updatedIngredients[type] = updatedCount;
-        const priceAddition = INGREDIENT_PRICES[type];
-        const oldPrice = this.state.totalPrice;
-        const newPrice = oldPrice + priceAddition;
-        this.setState({ totalPrice: newPrice, ingredients: updatedIngredients });
+        this.setState({ ingredients: updatedIngredients });
         this.updatePurchaseState(updatedIngredients);
     }
 
@@ -76,10 +87,7 @@ class BurgerBuilder extends Component {
             ...this.state.ingredients
         };
         updatedIngredients[type] = updatedCount;
-        const priceDeduction = INGREDIENT_PRICES[type];
-        const oldPrice = this.state.totalPrice;
-        const newPrice = oldPrice - priceDeduction;
-        this.setState({ totalPrice: newPrice, ingredients: updatedIngredients });
+        this.setState({ ingredients: updatedIngredients });
         this.updatePurchaseState(updatedIngredients);
     }
 
@@ -98,7 +106,7 @@ class BurgerBuilder extends Component {
         for (let i in this.state.ingredients) {
             queryParams.push(encodeURIComponent(i) + '=' + encodeURIComponent(this.state.ingredients[i]));
         }
-        queryParams.push('price=' + this.state.totalPrice);
+        queryParams.push('price=' + this.calculateTotalPrice());
         const queryString = queryParams.join('&');
         this.props.history.push({
             pathname: '/checkout',
@@ -123,15 +131,17 @@ class BurgerBuilder extends Component {
                     <BuildControls
                         ingredientAdded={this.addIngredientHandler}
                         ingredientRemoved={this.removeIngredientHandler}
+                        ingredients={this.state.ingredients}
                         disabled={disabledInfo}
                         purchasable={this.state.purchasable}
                         ordered={this.purchaseHandler}
-                        price={this.state.totalPrice} />
+                        resetHandler={this.resetIngredientHandler}
+                        price={this.calculateTotalPrice()} />
                 </Aux>
             );
             orderSummary = <OrderSummary
                 ingredients={this.state.ingredients}
-                price={this.state.totalPrice}
+                price={this.calculateTotalPrice()}
                 purchaseCancelled={this.purchaseCancelHandler}
                 purchaseContinued={this.purchaseContinueHandler} />;
         }

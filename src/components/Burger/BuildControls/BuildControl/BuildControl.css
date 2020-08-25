@@ -8,6 +8,7 @@
 .BuildControl button {
     display: block;
     font: inherit;
+    font-size: 2rem;
     padding: 5px;
     margin: 0 5px;
     width: 80px;
@@ -34,6 +35,12 @@
     padding: 10px;
     font-weight: bold;
     width: 80px;
+}
+
+.Count {
+    padding: 10px;
+    font-weight: bold;
+    color: white;
 }
 
 .BuildControl .Less {  
